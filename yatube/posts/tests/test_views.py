@@ -49,7 +49,8 @@ class PostPagesTests(TestCase):
         }
         for template, reverse_name in templates_pages_names.items():
             with self.subTest(reverse_name=reverse_name):
-                response = self.authorized_client_post_creater.get(reverse_name)
+                response = self.authorized_client_post_creater.get(reverse_name
+                                                                   )
                 self.assertTemplateUsed(response, template)
 
     def test_home_page_show_correct_context(self):
@@ -102,7 +103,10 @@ class PostPagesTests(TestCase):
         self.assertEqual(post_group, self.group)
 
     def test_post_edit_show_correcе_context(self):
-        response = self.authorized_client_post_creater.get(reverse('posts: post_edit', args=[self.post.id]))
+        response = self.authorized_client_post_creater.get(reverse
+                                                           ('posts: post_edit',
+                                                            args=[self.post.id]
+                                                            ))
         print(response)
         post_object = response.context['post']
         post_text = post_object.text
