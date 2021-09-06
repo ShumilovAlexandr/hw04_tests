@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Последние обновления на сайте{% endblock %}
+  </head>
+    <title>Профайл пользователя {{ author.username }}></title>
+  </head>
+  <body>
+        {% include 'includes/header.html' %}
+    <main>
+      <div class="container py-5">
+        <h1>Все посты пользователя </h1>
+        <h3>Всего постов: {{ author.posts.count }} </h3>
+        <article>
+        {% for post in page_obj %}
+ <ul>
+    <li>
+      Автор: {{ post.author.get_full_name }}
+      <a href="{% url 'posts:profile' author.username %}">все посты пользователя</a>
+    </li>
+    <li>
+      Дата публикации: {{ post.pub_date|date:"d E Y" }}
+    </li>
+  </ul>
+  <p>{{ post.text }}</p>
+  {% if post.group %}
+  <a href="{% url 'posts:group_list' post.group.slug %}">Все записи группы</a>
+  {% endif %}
+  {% if not forloop.last %}<hr>{% endif %}
+{% endfor %}
+      </div>
+    </main>
+      {% include 'posts/includes/paginator.html' %}
+      {% include 'includes/footer.html' %}
+  </body>
+</html> 
