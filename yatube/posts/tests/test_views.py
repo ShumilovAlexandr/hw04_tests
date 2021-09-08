@@ -1,9 +1,9 @@
-import datetime as dt
-
+from django.conf import settings
 from django import forms
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
+
 from posts.models import Group, Post, User
 
 User = get_user_model()
@@ -40,7 +40,7 @@ class PostPagesTests(TestCase):
             'posts/post_detail.html': reverse('posts:post_detail',
                                               args=[self.post.id]),
             'posts/group_list.html': reverse('posts:group_list',
-                                             args=['test-slug']),
+                                             args=[self.group.slug]),
             'posts/index.html': reverse('posts:index'),
             'posts/profile.html': reverse('posts:profile',
                                           args=[self.user.username]),
@@ -53,64 +53,54 @@ class PostPagesTests(TestCase):
                                                             )
                 self.assertTemplateUsed(response, template)
 
-    def test_home_page_show_correct_context(self):
-        response = self.authorized_client.get(reverse('posts:index'))
-        first_object = response.context['page_obj'][0]
-        task_text_0 = first_object.text
-        task_pub_date_0 = first_object.pub_date.date()
-        task_group_0 = first_object.group
-        task_author_0 = first_object.author
-        self.assertEqual(task_text_0, 'Текстовый текст')
-        self.assertEqual(task_pub_date_0, dt.date.today())
-        self.assertEqual(task_group_0, self.group)
-        self.assertEqual(task_author_0, self.user)
+    def test_page_show_correct_context(self):
+        urls = {
+            reverse('posts:index'),
+            reverse('posts:group_list', args=[self.group.slug]),
+            reverse('posts:profile', args=[self.user.username])
+        }
+        for url in urls:
+            with self.subTest():
+                response = self.authorized_client.get(url)
+                post_object = response.context['page_obj'][0]
+                post_text = post_object.text
+                self.assertEqual(post_text, self.post.text)
 
-    def test_group_list_page_show_correct_context(self):
-        response = self.authorized_client.get(reverse('posts:group_list',
-                                              args=['test-slug']))
-        post_object = response.context['page_obj'][0]
-        group_object = response.context['group']
-        post_text = post_object.text
-        post_author = post_object.author
-        post_date = post_object.pub_date.date()
-        group_desc = group_object.description
-        group_title = group_object.title
-        self.assertEqual(post_text, self.post.text)
-        self.assertEqual(post_date, dt.date.today())
-        self.assertEqual(group_desc, self.group.description)
-        self.assertEqual(post_author, self.user)
-        self.assertEqual(group_title, self.group.title)
+    def test_page_show_correct_context_2(self):
+        urls = {
+            reverse('posts:group_list', args=[self.group.slug])
+        }
+        for url in urls:
+            with self.subTest():
+                response = self.authorized_client.get(url)
+                group_object = response.context['group']
+                group_desc = group_object.description
+                self.assertEqual(group_desc, self.group.description)
 
-    def test_profile_show_correct_context(self):
-        response = self.authorized_client.get(reverse('posts:profile',
-                                              args=[self.user.username]))
-        post_object = response.context['page_obj'][0]
-        user_object = response.context['author']
-        post_text = post_object.text
-        post_group = post_object.group
-        user_username = user_object.username
-        self.assertEqual(post_text, self.post.text)
-        self.assertEqual(post_group, self.group)
-        self.assertEqual(user_username, self.user.username)
+    def test_page_show_correct_context_3(self):
+        urls = {
+            reverse('posts:profile', args=[self.user.username])
+        }
+        for url in urls:
+            with self.subTest():
+                response = self.authorized_client.get(url)
+                user_object = response.context['author']
+                user_username = user_object.username
+                self.assertEqual(user_username, self.user.username)
 
-    def test_post_detail_show_correct_context(self):
-        response = self.authorized_client.get(reverse('posts:post_detail',
-                                              args=[self.post.id]))
-        post_object = response.context['post']
-        post_text = post_object.text
-        post_group = post_object.group
-        self.assertEqual(post_text, self.post.text)
-        self.assertEqual(post_group, self.group)
-
-    def test_post_edit_show_correcе_context(self):
-        response = self.authorized_client_creat.get(reverse('posts:post_edit',
-                                                    args=[self.post.id]))
-        print(response)
-        post_object = response.context['post']
-        post_text = post_object.text
-        post_group = post_object.group
-        self.assertEqual(post_text, self.post.text)
-        self.assertEqual(post_group, self.group)
+    def test_page_show_correct_context_4(self):
+        urls = {
+            reverse('posts:post_detail', args=[self.post.id]),
+            reverse('posts:post_edit', args=[self.post.id])
+        }
+        for url in urls:
+            with self.subTest():
+                response = self.authorized_client_creat.get(url)
+                post_object = response.context['post']
+                post_text = post_object.text
+                post_group = post_object.group
+                self.assertEqual(post_text, self.post.text)
+                self.assertEqual(post_group, self.group)
 
     def test_create_post_show_correcе_context(self):
         response = self.authorized_client.get(reverse('posts:post_create'))
@@ -123,16 +113,14 @@ class PostPagesTests(TestCase):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
 
-    def test_paginator_index_page(self):
-        response = self.authorized_client.get(reverse('posts:index'))
-        self.assertEqual(len(response.context['page_obj']), self.post.id, 10)
-
-    def test_paginator_group_list_page(self):
-        response = self.authorized_client.get(reverse('posts:group_list',
-                                              args=['test-slug']))
-        self.assertEqual(len(response.context['page_obj']), self.post.id, 10)
-
-    def test_profile_page(self):
-        response = self.authorized_client.get(reverse('posts:profile',
-                                              args=[self.user.username]))
-        self.assertEqual(len(response.context['page_obj']), self.post.id, 10)
+    def test_paginator_correct_context(self):
+        responses = [
+            reverse('posts:index'),
+            reverse('posts:group_list', args=[self.group.slug]),
+            reverse('posts:profile', args=[self.user.username])
+        ]
+        for url in responses:
+            with self.subTest():
+                response = self.authorized_client.get(url)
+                self.assertEqual(len(response.context['page_obj']),
+                                 self.post.id, settings.POSTS_PER_PAGE)

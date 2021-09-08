@@ -4,6 +4,7 @@ import tempfile
 from django.conf import settings
 from django.test import Client, TestCase
 from django.urls import reverse
+
 from posts.forms import PostForm
 from posts.models import Group, Post, User
 
@@ -21,7 +22,6 @@ class StaticURLTests(TestCase):
             description='Test description'
         )
         cls.post = Post.objects.create(
-            pk='1',
             text='Текстовый текст',
             author=cls.user,
             group=cls.group,
@@ -41,7 +41,6 @@ class StaticURLTests(TestCase):
         form_data = {
             'text': 'Текстовый текст',
             'group': self.group.id,
-            'author': self.user
         }
         response = self.authorized_client.post(
             reverse('posts:post_create'),
@@ -53,11 +52,29 @@ class StaticURLTests(TestCase):
         self.assertEqual(Post.objects.count(), posts_count + 1)
         self.assertTrue(
             Post.objects.filter(
-                text='Текстовый текст',
+                text=form_data['text'],
                 group=self.group,
                 author=self.user
             ).exists()
         )
+
+    def test_edit_post(self):
+        form_data = {
+            'text': 'Тестовый текст измененный',
+            'group': self.group.pk,
+        }
+        response = self.authorized_client.post(
+            reverse('posts:post_edit', args=[self.post.id]),
+            data=form_data,
+            follow=True,
+        )
+        self.assertRedirects(response, reverse('posts:post_detail',
+                             args=[self.post.id]))
+        count = Post.objects.all().count()
+        self.assertEqual(count, 1)
+        post = response.context['post']
+        self.assertEqual(post.text, form_data['text'])
+        self.assertEqual(post.group.pk, form_data['group'])
 
     def test_title_label(self):
         text_label = self.form.fields['text'].label
