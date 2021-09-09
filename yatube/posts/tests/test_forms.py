@@ -39,7 +39,7 @@ class StaticURLTests(TestCase):
     def test_create_post(self):
         posts_count = Post.objects.count()
         form_data = {
-            'text': 'Текстовый текст',
+            'text': self.post.text,
             'group': self.group.id,
         }
         response = self.authorized_client.post(

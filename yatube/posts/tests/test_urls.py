@@ -1,7 +1,6 @@
 from http import HTTPStatus
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
-from django.urls import reverse
 
 from posts.models import Group, Post, User
 
@@ -28,15 +27,6 @@ class StaticURLTests(TestCase):
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
 
-    def test_usexisting_page(self):
-        response = self.guest_client.get('/usexisting_page/')
-        self.assertEqual(response.status_code, 404)
-
-    def test_edit_post_page_redirect_anonymous_on_login(self):
-        response = self.guest_client.get('/posts/1/edit/', follow=True)
-        self.assertRedirects(
-            response, ('/auth/login/?next=/posts/1/edit/'))
-
     def test_urls_correct_temlate(self):
         templates_url_names = {
             '/create/': 'posts/create_post.html',
@@ -55,21 +45,18 @@ class StaticURLTests(TestCase):
         status_codes = {
             self.guest_client:
             {
-                reverse('posts:index'): HTTPStatus.OK,
-                reverse('about:author'): HTTPStatus.OK,
-                reverse('about:tech'): HTTPStatus.OK,
-                reverse('posts:group_list', args=[self.group.slug]):
-                HTTPStatus.OK,
-                reverse('posts:profile', args=[self.user.username]):
-                HTTPStatus.OK,
-                reverse('posts:post_detail', args=[self.post.id]):
-                HTTPStatus.OK
+                '/': HTTPStatus.OK,
+                '/about/author/': HTTPStatus.OK,
+                '/about/tech/': HTTPStatus.OK,
+                f'/group/{self.group.slug}/': HTTPStatus.OK,
+                f'/profile/{self.user.username}/': HTTPStatus.OK,
+                f'/posts/{self.post.id}/': HTTPStatus.OK,
+                '/unexisting_page/': HTTPStatus.NOT_FOUND,
             },
                 self.authorized_client:
             {
-                reverse('posts:post_create'): HTTPStatus.OK,
-                reverse('posts:post_edit',
-                        args=[self.post.id]): HTTPStatus.FOUND,
+                '/create/': HTTPStatus.OK,
+                f'/posts/{self.post.id}/edit/': HTTPStatus.FOUND,
             },
         }
         for client, data in status_codes.items():
@@ -77,3 +64,18 @@ class StaticURLTests(TestCase):
                 with self.subTest():
                     response = client.get(url)
                     self.assertEqual(response.status_code, ststus_code)
+
+    def test_redirects(self):
+        redirects = {
+            self.guest_client:
+            {
+                f'/posts/{self.post.id}/edit/':
+                '/auth/login/?next=/posts/1/edit/',
+                '/create/': '/auth/login/?next=/create/',
+            },
+        }
+        for client, redirect in redirects.items():
+            for url, redirect_url in redirect.items():
+                with self.subTest():
+                    response = client.get(url)
+                    self.assertRedirects(response, redirect_url)
