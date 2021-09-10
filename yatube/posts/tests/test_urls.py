@@ -33,8 +33,8 @@ class StaticURLTests(TestCase):
             f'/posts/{self.post.id}/': '/update_post.html',
             f'/group/{self.group.slug}/': 'posts/group_list.html',
             '/': 'posts/index.html',
-            '/posts/1/': 'posts/post_detail.html',
-            '/profile/HasNoName/': 'posts/profile.html',
+            f'/posts/{self.post.id}/': 'posts/post_detail.html',
+            f'/profile/{self.user.username}/': 'posts/profile.html',
         }
         for adress, template in templates_url_names.items():
             with self.subTest(adress=adress):

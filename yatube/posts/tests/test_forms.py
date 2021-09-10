@@ -9,6 +9,7 @@ from posts.forms import PostForm
 from posts.models import Group, Post, User
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
+TEXT = 'Текст для нового поста'
 
 
 class StaticURLTests(TestCase):
@@ -39,7 +40,7 @@ class StaticURLTests(TestCase):
     def test_create_post(self):
         posts_count = Post.objects.count()
         form_data = {
-            'text': self.post.text,
+            'text': TEXT,
             'group': self.group.id,
         }
         response = self.authorized_client.post(
