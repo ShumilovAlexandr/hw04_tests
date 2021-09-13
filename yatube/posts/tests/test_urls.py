@@ -1,6 +1,7 @@
 from http import HTTPStatus
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
+from django.core.cache import cache
 
 from posts.models import Group, Post, User
 
@@ -26,6 +27,9 @@ class StaticURLTests(TestCase):
         cls.user = User.objects.create_user(username='HasNoName')
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
+
+    def setUp(self) -> None:
+        cache.clear()
 
     def test_urls_correct_temlate(self):
         templates_url_names = {

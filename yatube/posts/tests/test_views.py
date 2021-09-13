@@ -3,17 +3,19 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
+from django.core.cache import cache
 
-from posts.models import Group, Post, User
+from posts.models import Group, Post, User, Comment, Follow
 
 User = get_user_model()
+
+INDEX = reverse('posts:index')
+TEST = 'TestComment'
 
 
 class PostPagesTests(TestCase):
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
-        # Создадим запись в БД
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
         cls.authorized_client_creat = Client()
@@ -23,18 +25,20 @@ class PostPagesTests(TestCase):
             slug='test-slug',
             description='Test description'
         )
-        cls.post = Post.objects.create(
-            text='Текстовый текст',
-            author=cls.user,
-            group=cls.group,
-        )
         cls.guest_client = Client()
         cls.second_user = User.objects.create_user(username='HasNoName')
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.second_user)
 
+    def setUp(cls) -> None:
+        cls.post = Post.objects.create(
+            text='Текстовый текст',
+            author=cls.user,
+            group=cls.group,
+        )
+        cache.clear()
+
     def test_pages_uses_correct_template(self):
-        """URL-адрес использует соответствующий шаблон."""
         templates_pages_names = {
             'posts/create_post.html': reverse('posts:post_create'),
             'posts/post_detail.html': reverse('posts:post_detail',
@@ -107,6 +111,7 @@ class PostPagesTests(TestCase):
         form_fields = {
             'text': forms.fields.CharField,
             'group': forms.fields.ChoiceField,
+            'image': forms.fields.ImageField,
         }
         for value, expected in form_fields.items():
             with self.subTest(value=value):
@@ -124,3 +129,49 @@ class PostPagesTests(TestCase):
                 response = self.authorized_client.get(url)
                 self.assertEqual(len(response.context['page_obj']),
                                  self.post.id, settings.POSTS_PER_PAGE)
+
+    def test_authorized_client_comment(self):
+        comment_count = Comment.objects.count()
+        form_data = {
+            'text': TEST
+        }
+        self.authorized_client_creat.post(
+            reverse('posts:add_comment', args=[self.post.id]),
+            data=form_data,
+            follow=True
+        )
+        self.assertEqual(Comment.objects.count(), comment_count + 1)
+
+    def test_guest_client_comment(self):
+        comment_count = Comment.objects.count()
+        form_data = {
+            'text': TEST
+        }
+        self.authorized_client_creat.post(
+            reverse('posts:add_comment', args=[self.post.id]),
+            data=form_data,
+            follow=True
+        )
+        self.assertEqual(Comment.objects.count(), comment_count + 1)
+
+    def test_cache(self):
+        test_page = self.guest_client.get(INDEX).content
+        self.post.text = 'Новый текст поста'
+        self.post.save()
+        page1 = self.guest_client.get(INDEX).content
+        self.assertEqual(page1, test_page)
+        cache.clear()
+        page2 = self.guest_client.get(INDEX).content
+        self.assertNotEqual(page2, test_page)
+
+    def test_authorized_client_subscribe_to_author(self):
+        follower_count = Follow.objects.all().count()
+        self.authorized_client.get(reverse('posts:profile_follow',
+                                   kwargs={'username': self.post.author}),
+                                   follow=True)
+        self.assertEqual(Follow.objects.all().count(), follower_count + 1)
+        self.authorized_client.get(reverse('posts:profile_unfollow',
+                                   kwargs={'username': self.post.author}),
+                                   follow=True)
+        self.assertEqual(Follow.objects.all().count(), follower_count)
+

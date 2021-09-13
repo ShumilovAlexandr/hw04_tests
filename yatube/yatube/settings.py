@@ -13,7 +13,12 @@ SECRET_KEY = 'je4@*050vtp8(5y)m^k_um1=^jk_*fg3!7mrkp3qja_7a#3se!'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*', ]
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '[::1]',
+    'testserver'
+]
 
 
 # Application definition
@@ -29,6 +34,7 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'core.apps.CoreConfig',
     'about.apps.AboutConfig',
+    'sorl.thumbnail',
 ]
 
 MIDDLEWARE = [
@@ -127,3 +133,15 @@ POSTS_PER_PAGE = 10
 
 USE_TZ = True
 TIME_ZONE = 'Europe/Moscow'
+
+CSRF_FAILURE_VIEW = 'core.views.csrf_failure'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'TIMEOUT': 20,
+    }
+}
