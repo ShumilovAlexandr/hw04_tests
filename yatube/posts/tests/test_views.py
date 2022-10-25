@@ -174,4 +174,3 @@ class PostPagesTests(TestCase):
                                    kwargs={'username': self.post.author}),
                                    follow=True)
         self.assertEqual(Follow.objects.all().count(), follower_count)
-
