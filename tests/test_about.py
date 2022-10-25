@@ -15,3 +15,4 @@ class TestTemplateView:
             assert response.status_code == 200, (
                 f'Ошибка {response.status_code} при открытиии `{url}`. Проверьте ее view-функцию'
             )
+
